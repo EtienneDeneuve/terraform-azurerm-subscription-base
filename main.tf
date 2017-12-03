@@ -8,82 +8,108 @@ resource "azurerm_resource_group" "network_resource_group" {
 }
 
 resource "azurerm_virtual_network" "vn" {
-  name                = "${lower(var.account_name)}"
+  name                = "${lower(var.tenancy_name)}"
   resource_group_name = "${azurerm_resource_group.network_resource_group.name}"
-  address_space       = "${var.network_address_space}"
+  address_space       = ["${var.network_address_space}"]
   location            = "${var.location}"
   tags                = "${local.common_tags}"
 }
 
 resource "azurerm_subnet" "web" {
-  name                 = "public"
+  name                 = "web"
   virtual_network_name = "${azurerm_virtual_network.vn.name}"
-  address_prefix       = "${var.public_address_space}"
+  address_prefix       = "${var.web_address_space}"
   resource_group_name  = "${azurerm_resource_group.network_resource_group.name}"
-  tags     = "${merge(local.common_tags, map("subnet_role", "web"))}"
 }
 
 resource "azurerm_subnet" "app" {
-  name                 = "private"
+  name                 = "app"
   virtual_network_name = "${azurerm_virtual_network.vn.name}"
-  address_prefix       = "${var.private_address_space}"
-  resource_group_name = "${azurerm_resource_group.network_resource_group.name}"
-  tags     = "${merge(local.common_tags, map("subnet_role", "app"))}"
+  address_prefix       = "${var.app_address_space}"
+  resource_group_name  = "${azurerm_resource_group.network_resource_group.name}"
 }
 
 resource "azurerm_subnet" "data" {
   name                 = "data"
   virtual_network_name = "${azurerm_virtual_network.vn.name}"
   address_prefix       = "${var.data_address_space}"
-  resource_group_name = "${azurerm_resource_group.network_resource_group.name}"
-  tags     = "${merge(local.common_tags, map("subnet_role", "data"))}"
+  resource_group_name  = "${azurerm_resource_group.network_resource_group.name}"
 }
 
 ###################################
-## Virtual Network - Peerings 
+## Virtual Network - Peerings (SPOKE ONLY)
 ###################################
-resource "azurerm_virtual_network_peering" "tenancy_to_lmz" {
-  name                      = "${local.tenancy_to_lmz_name}"
+
+resource "azurerm_virtual_network_peering" "spoke_to_hub" {
+  count                     = "${var.spoke ? 1 : 0}"
+  name                      = "${local.tenancy_to_hub_name}"
   resource_group_name       = "${azurerm_resource_group.network_resource_group.name}"
   virtual_network_name      = "${azurerm_virtual_network.vn.name}"
-  remote_virtual_network_id = "${var.lmz_virtual_network_id}"
+  remote_virtual_network_id = "${var.hub_virtual_network_id}"
+  allow_virtual_network_access = true
+  allow_forwarded_traffic = true
+  allow_gateway_transit = false
+  use_remote_gateways = false
 }
 
-resource "azurerm_virtual_network_peering" "lmz_to_tenancy" {
-  name                      = "${local.lmz_to_tenancy_name}"
-  resource_group_name       = "${var.lmz_resource_group_name}"
-  virtual_network_name      = "${var.lmz_virtual_network_name}"
-  remote_virtual_network_id = "${azurerm_resource_group.network_resource_group.id}"
+resource "azurerm_virtual_network_peering" "hub_to_spoke" {
+  count                     = "${var.spoke ? 1 : 0}"
+  name                      = "${local.hub_to_tenancy_name}"
+  resource_group_name       = "${var.hub_network_resource_group_name}"
+  virtual_network_name      = "${var.hub_virtual_network_name}"
+  remote_virtual_network_id = "${azurerm_virtual_network.vn.id}"
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = false
 }
 
 ###################################
 ## DNS Zone
 ###################################
 resource "azurerm_resource_group" "dns_rg" {
-  name     = "${var.account_name}"
+  name     = "${local.rg_prefix}-dns"
   location = "${var.location}"
   tags     = "${local.common_tags}"
 }
 
 resource "azurerm_dns_zone" "tenant_subdomain" {
-  name                = "${var.tenancy_name}.${var.parent_dns_record}"
+  name                = "${var.tenancy_name}.${var.parent_domain_name}"
+  resource_group_name = "${azurerm_resource_group.dns_rg.name}"
+  tags                = "${local.common_tags}"
+}
+
+resource "azurerm_dns_zone" "parent_subdomain" {
+  count               = "${var.spoke ? 0 : 1 }"
+  name                = "${var.parent_domain_name}"
   resource_group_name = "${azurerm_resource_group.dns_rg.name}"
   tags                = "${local.common_tags}"
 }
 
 ###################################
-## Create Lookup in Parent
+## DNS Zone - Subdomain NS Record (SPOKE ONLY)
 ###################################
 resource "azurerm_dns_ns_record" "subdomain_ns_allocation" {
+  count               = "${var.spoke ? 1 : 0}"
   name                = "${var.tenancy_name}"
-  zone_name           = "${var.parent_dns_record}"
-  resource_group_name = "${var.lmz_resource_group_name}"
+  zone_name           = "${var.parent_domain_name}"
+  resource_group_name = "${var.hub_dns_resource_group_name}"
   ttl                 = 300
 
   record {
-    count = "${length(azurerm_dns_zone.tenant_subdomain.name_servers)}"
-    nsdname = "${element(azurerm_dns_zone.tenant_subdomain.*.name_servers, count.index)}"
+    nsdname = "${element(azurerm_dns_zone.tenant_subdomain.name_servers, 0)}"
   }
 
-  tags = "${local.common_tags}"
+  record {
+    nsdname = "${element(azurerm_dns_zone.tenant_subdomain.name_servers, 1)}"
+  }
+
+  record {
+    nsdname = "${element(azurerm_dns_zone.tenant_subdomain.name_servers, 2)}"
+  }
+
+  record {
+    nsdname = "${element(azurerm_dns_zone.tenant_subdomain.name_servers, 3)}"
+  }
+
 }
