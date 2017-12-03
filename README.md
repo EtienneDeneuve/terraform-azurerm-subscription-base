@@ -17,4 +17,7 @@ If the Spoke flag is true, this module will create:
 - [x] Peering to the Hub
 - [x] Peering from the Hub
 
+If the Spoke flag is False (i.e. is a hub), this module will create:
+- [x] A Parent DNS Zone for the tenant
+
 For an example, see /example/Hub and Spoke/
