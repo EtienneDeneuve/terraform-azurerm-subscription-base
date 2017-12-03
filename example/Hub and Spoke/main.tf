@@ -1,3 +1,11 @@
+provider "azurerm" {
+  alias = "hub"
+  subscription_id = "..."
+  client_id       = "..."
+  client_secret   = "..."
+  tenant_id       = "..."
+}
+
 module "hub_example" {
   source = "../../"
 
@@ -13,6 +21,18 @@ module "hub_example" {
   parent_domain_name    = "azure.example.com"
 
   spoke = false
+
+  providers = {
+    azurerm = "azurerm.hub"
+  }
+}
+
+provider "azurerm" {
+  alias = "spoke"
+  subscription_id = "..."
+  client_id       = "..."
+  client_secret   = "..."
+  tenant_id       = "..."
 }
 
 module "spoke_example" {
@@ -34,4 +54,8 @@ module "spoke_example" {
   hub_network_resource_group_name = "${module.hub_example.network_resource_group_name}"
   hub_virtual_network_name        = "${module.hub_example.vnet_name}"
   hub_virtual_network_id          = "${module.hub_example.vnet_id}"
+
+  providers = {
+    azurerm = "azurerm.spoke"
+  }
 }

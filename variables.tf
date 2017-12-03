@@ -81,6 +81,12 @@ variable hub_virtual_network_id {
   default     = ""
 }
 
+variable provider_alias {
+  type = "string"
+  description = "Provider alias for the subscription"
+  default = "default"
+}
+
 locals {
   base_tags = {
     location     = "${var.location}"
