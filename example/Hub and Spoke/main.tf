@@ -23,7 +23,8 @@ module "hub_example" {
   spoke = false
 
   providers = {
-    azurerm = "azurerm.hub"
+    "azurerm.base" = "azurerm.hub"
+    "azurerm.parent" = "azurerm.hub"
   }
 }
 
@@ -56,6 +57,7 @@ module "spoke_example" {
   hub_virtual_network_id          = "${module.hub_example.vnet_id}"
 
   providers = {
-    azurerm = "azurerm.spoke"
+    "azurerm.base" = "azurerm.hub"
+    "azurerm.parent" = "azurerm.spoke"
   }
 }

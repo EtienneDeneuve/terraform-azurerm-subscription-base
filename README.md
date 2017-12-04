@@ -21,3 +21,22 @@ If the Spoke flag is False (i.e. is a hub), this module will create:
 - [x] A Parent DNS Zone for the tenant
 
 For an example, see /example/Hub and Spoke/
+
+## Providers
+This module makes use of Provider Alias's
+
+If the module is a hub, please provide the same alias (the hub) for both like below:
+```
+providers = {
+  "azurerm.base" = "azurerm.hub"
+  "azurerm.parent" = "azurerm.hub"
+}
+```
+
+if the module is a spoke, provide an alias 
+```
+providers = {
+  "azurerm.base" = "azurerm.hub"
+  "azurerm.parent" = "azurerm.spoke"
+}
+```
