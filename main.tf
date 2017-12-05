@@ -2,14 +2,14 @@
 ## Virtual Network - VNet & Subnets 
 ###################################
 resource "azurerm_resource_group" "network_resource_group" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   name     = "${local.rg_prefix}-network"
   location = "${var.location}"
   tags     = "${local.common_tags}"
 }
 
 resource "azurerm_virtual_network" "vn" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   name                = "${lower(var.tenancy_name)}"
   resource_group_name = "${azurerm_resource_group.network_resource_group.name}"
   address_space       = ["${var.network_address_space}"]
@@ -18,7 +18,7 @@ resource "azurerm_virtual_network" "vn" {
 }
 
 resource "azurerm_subnet" "web" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   name                 = "web"
   virtual_network_name = "${azurerm_virtual_network.vn.name}"
   address_prefix       = "${var.web_address_space}"
@@ -26,7 +26,7 @@ resource "azurerm_subnet" "web" {
 }
 
 resource "azurerm_subnet" "app" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   name                 = "app"
   virtual_network_name = "${azurerm_virtual_network.vn.name}"
   address_prefix       = "${var.app_address_space}"
@@ -34,7 +34,7 @@ resource "azurerm_subnet" "app" {
 }
 
 resource "azurerm_subnet" "data" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   name                 = "data"
   virtual_network_name = "${azurerm_virtual_network.vn.name}"
   address_prefix       = "${var.data_address_space}"
@@ -46,7 +46,7 @@ resource "azurerm_subnet" "data" {
 ###################################
 
 resource "azurerm_virtual_network_peering" "spoke_to_hub" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   count                     = "${var.spoke ? 1 : 0}"
   name                      = "${local.tenancy_to_hub_name}"
   resource_group_name       = "${azurerm_resource_group.network_resource_group.name}"
@@ -59,7 +59,7 @@ resource "azurerm_virtual_network_peering" "spoke_to_hub" {
 }
 
 resource "azurerm_virtual_network_peering" "hub_to_spoke" {
-  alias    = "azurerm.parent"
+  provider    = "azurerm.parent"
   count                     = "${var.spoke ? 1 : 0}"
   name                      = "${local.hub_to_tenancy_name}"
   resource_group_name       = "${var.hub_network_resource_group_name}"
@@ -75,21 +75,21 @@ resource "azurerm_virtual_network_peering" "hub_to_spoke" {
 ## DNS Zone
 ###################################
 resource "azurerm_resource_group" "dns_rg" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   name     = "${local.rg_prefix}-dns"
   location = "${var.location}"
   tags     = "${local.common_tags}"
 }
 
 resource "azurerm_dns_zone" "tenant_subdomain" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   name                = "${var.tenancy_name}.${var.parent_domain_name}"
   resource_group_name = "${azurerm_resource_group.dns_rg.name}"
   tags                = "${local.common_tags}"
 }
 
 resource "azurerm_dns_zone" "parent_subdomain" {
-  alias    = "azurerm.base"
+  provider    = "azurerm.base"
   count               = "${var.spoke ? 0 : 1 }"
   name                = "${var.parent_domain_name}"
   resource_group_name = "${azurerm_resource_group.dns_rg.name}"
@@ -100,7 +100,7 @@ resource "azurerm_dns_zone" "parent_subdomain" {
 ## DNS Zone - Subdomain NS Record (SPOKE ONLY)
 ###################################
 resource "azurerm_dns_ns_record" "subdomain_ns_allocation" {
-  alias    = "azurerm.parent"
+  provider    = "azurerm.parent"
   count               = "${var.spoke ? 1 : 0}"
   name                = "${var.tenancy_name}"
   zone_name           = "${var.parent_domain_name}"
