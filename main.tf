@@ -1,3 +1,11 @@
+provider "azurerm" {
+  alias = "parent"
+}
+
+provider "azurerm" {
+  alias = "base"
+}
+
 ###################################
 ## Virtual Network - VNet & Subnets 
 ###################################
