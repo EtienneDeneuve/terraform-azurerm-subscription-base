@@ -39,6 +39,12 @@ variable web_address_space {
   description = "Address space of the Web Subnet"
 }
 
+
+variable firewall_address_space {
+  type        = "string"
+  description = "Address space of the Firewall Subnet, must be at least a /25"
+}
+
 variable data_address_space {
   type        = "string"
   description = "Address Space of the Data Subnet"
@@ -99,6 +105,7 @@ locals {
   abreviations = {
     "Australia East"      = "syd"
     "Australia Southeast" = "vic"
+    "West Europe" = "ams"
   }
 
   rg_prefix = "${lower(var.tenancy_name)}-${lower(var.environment)}-${lookup(local.abreviations, var.location, var.location)}"
